@@ -1,5 +1,16 @@
-opencv-python
-pillow 
-numpy 
-scipy 
+# Smart Attendance System — dependencies
+# Install with:  pip install -r requirements.txt
+
+opencv-python>=4.5
+Pillow>=9.0
+numpy>=1.21
+scipy>=1.7
+
+# Audio (optional — voice step is skipped gracefully if unavailable)
+# On Linux you may also need:  sudo apt install portaudio19-dev
 sounddevice
+
+# MediaPipe (optional — falls back to OpenCV-only if absent)
+# If you have mediapipe >= 0.10 you ALSO need two .task model files —
+# see the comment in attend_detectors.py for download links.
+mediapipe

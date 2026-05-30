@@ -31,9 +31,9 @@ def extract_voice_features(audio_int16):
     if audio_int16 is None or len(audio_int16) == 0:
         return np.zeros(26, dtype=np.float32)
     
-    signal = audio_int16.astype(np.float32).flatten()
+    signal = np.asarray(audio_int16, dtype=np.float32).flatten()
     max_val = np.max(np.abs(signal))
-    if max_val < 1e-6:
+    if max_val < 1e-6 or not np.isfinite(max_val):
         return np.zeros(26, dtype=np.float32)
     
     signal /= (max_val + 1e-6)
@@ -53,7 +53,7 @@ def extract_voice_features(audio_int16):
         spec = np.abs(np.fft.rfft(f * window))
         energies.append(spec)
 
-    avg_spec = np.mean(energies, axis=0)
+    avg_spec = np.nan_to_num(np.mean(energies, axis=0))
     n_bins = len(avg_spec)
     edges = np.logspace(np.log10(1), np.log10(max(n_bins, 2)), 27).astype(int)
     edges = np.clip(edges, 0, n_bins - 1)
@@ -69,11 +69,10 @@ def extract_voice_features(audio_int16):
             bands.append(band_val if not np.isnan(band_val) else 0.0)
     
     bands = np.array(bands, dtype=np.float32)
-    norm = np.linalg.norm(bands) + 1e-6
-    result = bands / norm
-    # Replace any NaN with zeros
-    result = np.nan_to_num(result)
-    return result
+    norm = np.linalg.norm(bands)
+    if norm < 1e-6 or not np.isfinite(norm):
+        return np.zeros(26, dtype=np.float32)
+    return np.nan_to_num(bands / norm).astype(np.float32)
 
 
 def record_and_save(student_dir, attempt=1):
@@ -88,6 +87,8 @@ def record_and_save(student_dir, attempt=1):
         
         # Check if recording has actual audio (not just silence)
         if recording is None or len(recording) == 0:
+            return None, None
+        if np.max(np.abs(recording.astype(np.float32))) < 300:
             return None, None
             
         fname = "voice.wav" if attempt == 1 else "voice2.wav"
@@ -105,11 +106,12 @@ def average_voice_features(audio1, audio2=None):
     if audio2 is not None:
         f2 = extract_voice_features(audio2)
         feat = (f1 + f2) / 2.0
-        norm = np.linalg.norm(feat) + 1e-6
-        feat = feat / norm
+        norm = np.linalg.norm(feat)
+        feat = feat / norm if norm > 1e-6 and np.isfinite(norm) else np.zeros(26, dtype=np.float32)
     else:
         feat = f1
-    return np.nan_to_num(feat)
+    feat = np.nan_to_num(feat).astype(np.float32)
+    return feat if np.linalg.norm(feat) > 1e-6 else None
 
 
 class VoiceWidget:
@@ -199,6 +201,11 @@ class VoiceWidget:
         else:
             self.audio2 = audio
             feat = average_voice_features(self.audio1, self.audio2)
+            if feat is None:
+                self.status.config(text="Voice sample too quiet - try again", fg=WARN)
+                self.rec_btn.config(state="normal", text="RECORD AGAIN")
+                self.attempt = 1
+                return
             save_path = os.path.join(self.student_dir, "voice_features.npy")
             np.save(save_path, feat)
             self.status.config(text="✅  Voice enrolled (2 samples averaged)!", fg=ACCENT2)

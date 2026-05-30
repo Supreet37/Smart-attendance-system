@@ -279,3 +279,15 @@ class EnrollmentApp(tk.Frame):
         if self.camera:
             self.camera.stop()
         self.parent.destroy()
+
+if __name__ == "__main__":
+    from enroll_config import WIN_WIDTH, WIN_HEIGHT
+    root = tk.Tk()
+    root.title("Smart Attendance — Enrollment")
+    root.resizable(False, False)
+    root.configure(bg="#F0F4F8")
+    sx = root.winfo_screenwidth()
+    sy = root.winfo_screenheight()
+    root.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{(sx-WIN_WIDTH)//2}+{(sy-WIN_HEIGHT)//2}")
+    EnrollmentApp(root)
+    root.mainloop()

@@ -4,6 +4,7 @@ Professional white + navy blue theme
 """
 
 import os
+import platform
 
 # ── Directories ───────────────────────────────────────────
 STUDENTS_DIR   = "students"
@@ -27,9 +28,9 @@ STEP_INSTRUCTIONS = {
 }
 
 # ── Face recognition ──────────────────────────────────────
-FACE_MATCH_FRAMES   = 12
+FACE_MATCH_FRAMES   = 10
 FACE_HIST_BINS      = 32
-FACE_MATCH_THRESH   = 0.55
+FACE_MATCH_THRESH   = 0.50       # lowered slightly for real-world tolerance
 
 # ── Hand detection ────────────────────────────────────────
 HAND_CONFIRM_FRAMES = 8
@@ -45,8 +46,20 @@ NOD_WINDOW_S        = 3.0
 # ── Voice ─────────────────────────────────────────────────
 SAMPLE_RATE         = 44100
 RECORD_SECONDS      = 3
-VOICE_MATCH_THRESH  = 0.45
+VOICE_MATCH_THRESH  = 0.40       # lowered for better pass rate
 VOICE_MAX_RETRIES   = 3
+
+# ── GPS ───────────────────────────────────────────────────
+GPS_ENABLED         = True       # set False to skip GPS lookup
+GPS_TIMEOUT_S       = 5          # seconds to wait for location
+
+# ── Platform ─────────────────────────────────────────────
+IS_WINDOWS = platform.system() == "Windows"
+IS_LINUX   = platform.system() == "Linux"
+IS_MAC     = platform.system() == "Darwin"
+
+# ── Camera ────────────────────────────────────────────────
+CAMERA_INDEX        = 0          # change to 1/2 if camera 0 doesn't work
 
 # ── Professional White + Navy Blue Palette ────────────────
 BG          = "#F0F4F8"
