@@ -24,7 +24,8 @@ S_DONE       = "done"
 
 
 class VerificationPipeline:
-    def __init__(self, students, on_complete, on_update):
+    def __init__(self, students, on_complete, on_update, on_face_matched=None):
+        self.on_face_matched = on_face_matched
         self.students    = students
         self.on_complete = on_complete
         self.on_update   = on_update
@@ -69,6 +70,8 @@ class VerificationPipeline:
                     self._face_buf = []
                 if len(self._face_buf) >= FACE_MATCH_FRAMES:
                     self.matched_student = self._face_buf[-1]
+                    if self.on_face_matched and self.on_face_matched(self.matched_student):
+                        return self._make_result(frame_bgr, face, "⚠ Already marked today", None, False)
                     self.step = S_HAND_PROMPT
                     self._prompt_start = time.time()
                     self.on_update(S_HAND_PROMPT,
