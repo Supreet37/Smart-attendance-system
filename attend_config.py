@@ -49,6 +49,18 @@ RECORD_SECONDS      = 3
 VOICE_MATCH_THRESH  = 0.40       # lowered for better pass rate
 VOICE_MAX_RETRIES   = 3
 
+# ── Voice Ensemble ────────────────────────────────────────
+VOICE_ENSEMBLE_WEIGHTS = {
+    "fft":         0.20,
+    "resemblyzer": 0.50,
+    "speechbrain": 0.30,
+}
+
+VOICE_FFT_THRESH         = 0.40
+VOICE_RESEMBLYZER_THRESH = 0.75
+VOICE_SPEECHBRAIN_THRESH = 0.70
+VOICE_ENSEMBLE_THRESH    = 0.68   # weighted score must exceed this to pass
+
 # ── GPS ───────────────────────────────────────────────────
 GPS_ENABLED         = True       # set False to skip GPS lookup
 GPS_TIMEOUT_S       = 5          # seconds to wait for location
