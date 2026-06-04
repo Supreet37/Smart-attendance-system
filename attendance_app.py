@@ -47,6 +47,7 @@ class AttendanceApp:
         self._start_ui()
         self._start_camera()
         self._start_pipeline()
+        self._reload_todays_attendance()
 
     # ── UI ────────────────────────────────────────────────────────────────
     def _start_ui(self):
@@ -55,6 +56,7 @@ class AttendanceApp:
             self._reset_pipeline,
             on_session_start=self._on_session_start,
             on_session_stop=self._on_session_stop,
+            on_enrollment_closed=self._on_enrollment_closed,
         )
         self.ui.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -103,6 +105,7 @@ class AttendanceApp:
             self.students,
             on_complete=self._on_verification_complete,
             on_update=self._on_pipeline_update,
+            on_face_matched=self._on_face_matched,
         )
 
     def _reset_pipeline(self):
@@ -114,6 +117,16 @@ class AttendanceApp:
         self.ui.update_step(step, msg, tone)
 
     # ── Session ───────────────────────────────────────────────────────────
+
+    def _on_enrollment_closed(self):
+        self.students = load_students()
+        if self.pipeline:
+            self.pipeline.students = self.students
+        self.ui.students = self.students
+        self.ui._update_enrolled_badge()
+        self.ui.status_lbl.config(
+            text=f"Reloaded — {len(self.students)} student(s) enrolled", fg="#1D4ED8")
+
     def _on_session_start(self):
         self._session_active = True
         self._reset_pipeline()
@@ -158,6 +171,32 @@ class AttendanceApp:
 
         # Auto-reset for next student
         self.ui.after(4000, self._reset_pipeline)
+
+
+    def _reload_todays_attendance(self):
+        today = datetime.now().strftime("%Y-%m-%d")
+        csv_path = os.path.join(ATTENDANCE_DIR, f"attendance_{today}.csv")
+        if not os.path.isfile(csv_path):
+            return
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            for row in csv.reader(f):
+                if row and row[0] != "Roll":   # skip header
+                    roll = row[0]
+                    self._marked_today.add(roll)
+                    # find the matching student and add to UI
+                    for s in self.students:
+                        if s["roll"] == roll:
+                            self.ui.add_attendee(s, None)
+                            break
+
+    def _on_face_matched(self, student):
+        roll = student["roll"]
+        if roll in self._marked_today or _already_marked_today(roll):
+            self._marked_today.add(roll)
+            self.ui.show_already_marked(student)
+            self.ui.after(3000, self._reset_pipeline)
+            return True   # True = block the pipeline from advancing
+        return False      # False = proceed normally
 
     # ── Close ─────────────────────────────────────────────────────────────
     def _on_close(self):
