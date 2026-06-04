@@ -582,18 +582,125 @@ def _extract_voice_features(audio, n_bands=26):
         return np.zeros(n_bands, dtype=np.float32)
 
 
+# ── load these at top of attend_detectors.py ──────────
+try:
+    from resemblyzer import VoiceEncoder, preprocess_wav
+    from pathlib import Path as _Path
+    _resem_encoder = VoiceEncoder()
+    RESEM_OK = True
+    _log("[ok] Resemblyzer ready for matching")
+except Exception:
+    _resem_encoder = None
+    RESEM_OK = False
+
+try:
+    # Import dynamically to avoid static analysis errors when speechbrain is not installed.
+    import importlib
+    sb_pretrained = importlib.import_module("speechbrain.pretrained")
+    _SBRec = getattr(sb_pretrained, "SpeakerRecognition")
+    _sb_model = _SBRec.from_hparams(
+        source="speechbrain/spkrec-ecapa-voxceleb",
+        savedir="pretrained_models/spkrec-ecapa-voxceleb"
+    )
+    SB_OK = True
+    _log("[ok] SpeechBrain ready for matching")
+except Exception:
+    _sb_model = None
+    SB_OK = False
+
+
+def _cosine(a, b):
+    """Safe cosine similarity between two 1-D arrays."""
+    n1, n2 = np.linalg.norm(a), np.linalg.norm(b)
+    if n1 < 1e-6 or n2 < 1e-6:
+        return 0.0
+    return float(np.dot(a, b) / (n1 * n2))
+
+
 def match_voice(audio, student):
-    if student is None or student.get("voice_feat") is None:
-        return True, 1.0          # no voice enrolled → skip
+    """
+    3-model weighted ensemble voice matcher.
+    Returns (passed: bool, weighted_score: float)
+    """
+    from attend_config import (
+        VOICE_FFT_THRESH, VOICE_RESEMBLYZER_THRESH,
+        VOICE_SPEECHBRAIN_THRESH, VOICE_ENSEMBLE_THRESH,
+        VOICE_ENSEMBLE_WEIGHTS
+    )
+
+    if student is None:
+        return True, 1.0
+
+    # If student has no voice enrolled at all — skip
+    has_any = any([
+        student.get("voice_feat") is not None,
+        student.get("voice_resem") is not None,
+        student.get("voice_sb")   is not None,
+    ])
+    if not has_any:
+        return True, 1.0
+
     if audio is None:
         return False, 0.0
-    stored = student["voice_feat"]
-    feat   = _extract_voice_features(audio, n_bands=stored.shape[0])
-    n1, n2 = np.linalg.norm(feat), np.linalg.norm(stored)
-    if n1 < 1e-6 or n2 < 1e-6:
+
+    scores  = {}
+    weights = {}
+
+    # ── 1. FFT ────────────────────────────────────────
+    if student.get("voice_feat") is not None:
+        feat = _extract_voice_features(audio,
+               n_bands=student["voice_feat"].shape[0])
+        scores["fft"]  = _cosine(feat, student["voice_feat"])
+        weights["fft"] = VOICE_ENSEMBLE_WEIGHTS["fft"]
+
+    # ── 2. Resemblyzer ────────────────────────────────
+    if RESEM_OK and student.get("voice_resem") is not None:
+        try:
+            # write audio to a temp wav, preprocess, embed
+            import tempfile, scipy.io.wavfile as _wf
+            audio_i16 = (audio * 32767).astype(np.int16)
+            with tempfile.NamedTemporaryFile(suffix=".wav",
+                                             delete=False) as tmp:
+                _wf.write(tmp.name, SAMPLE_RATE, audio_i16)
+                wav = preprocess_wav(_Path(tmp.name))
+            os.unlink(tmp.name)
+            emb = _resem_encoder.embed_utterance(wav).astype(np.float32)
+            scores["resemblyzer"]  = _cosine(emb, student["voice_resem"])
+            weights["resemblyzer"] = VOICE_ENSEMBLE_WEIGHTS["resemblyzer"]
+        except Exception as e:
+            _log(f"[warn] Resemblyzer match failed: {e}")
+
+    # ── 3. SpeechBrain ────────────────────────────────
+    if SB_OK and student.get("voice_sb") is not None:
+        try:
+            import tempfile, torchaudio, torch
+            import scipy.io.wavfile as _wf
+            audio_i16 = (audio * 32767).astype(np.int16)
+            with tempfile.NamedTemporaryFile(suffix=".wav",
+                                             delete=False) as tmp:
+                _wf.write(tmp.name, SAMPLE_RATE, audio_i16)
+                waveform, sr = torchaudio.load(tmp.name)
+            os.unlink(tmp.name)
+            if sr != 16000:
+                waveform = torchaudio.transforms.Resample(sr, 16000)(waveform)
+            with torch.no_grad():
+                emb = _sb_model.encode_batch(waveform).squeeze().numpy()
+            emb = emb.astype(np.float32)
+            scores["speechbrain"]  = _cosine(emb, student["voice_sb"])
+            weights["speechbrain"] = VOICE_ENSEMBLE_WEIGHTS["speechbrain"]
+        except Exception as e:
+            _log(f"[warn] SpeechBrain match failed: {e}")
+
+    if not scores:
         return False, 0.0
-    sim = float(np.dot(feat, stored) / (n1 * n2))
-    return sim >= VOICE_MATCH_THRESH, sim
+
+    # ── Weighted score ────────────────────────────────
+    total_w       = sum(weights[k] for k in scores)
+    weighted_score = sum(scores[k] * weights[k]
+                        for k in scores) / (total_w + 1e-9)
+
+    _log(f"[voice] scores={scores}  weighted={weighted_score:.3f}")
+    return weighted_score >= VOICE_ENSEMBLE_THRESH, weighted_score
 
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
@@ -628,12 +735,30 @@ def load_students():
                     voice_feat = vf
                 else:
                     _log(f"[warn] Bad voice features for {entry} — skipping voice")
+
+            resem_path = os.path.join(folder, "voice_embed_resemblyzer.npy")
+            voice_resem = None
+            if os.path.isfile(resem_path):
+                vr = np.load(resem_path).astype(np.float32)
+                if np.all(np.isfinite(vr)) and np.linalg.norm(vr) > 1e-6:
+                    voice_resem = vr
+
+            sb_path = os.path.join(folder, "voice_embed_speechbrain.npy")
+            voice_sb = None
+            if os.path.isfile(sb_path):
+                vs = np.load(sb_path).astype(np.float32)
+                if np.all(np.isfinite(vs)) and np.linalg.norm(vs) > 1e-6:
+                    voice_sb = vs
+
+            
             students.append({
                 "name": meta["name"],
                 "roll": meta["roll_number"],
                 "folder": folder,
                 "face_hists": hists,
                 "voice_feat": voice_feat,
+                "voice_resem": voice_resem,   
+                "voice_sb":    voice_sb,     
             })
         except Exception as e:
             _log(f"[error] Loading student {entry}: {e}")
