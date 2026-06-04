@@ -33,7 +33,7 @@ CAM_W, CAM_H = 640, 440          # display resolution
 
 class AttendanceUI(tk.Tk):
     def __init__(self, students, on_pipeline_reset,
-                 on_session_start=None, on_session_stop=None):
+                 on_session_start=None, on_session_stop=None,on_enrollment_closed=None):
         super().__init__()
         self.students              = students
         self.on_pipeline_reset     = on_pipeline_reset
@@ -42,6 +42,7 @@ class AttendanceUI(tk.Tk):
         self.attendees_today       = []
         self._cur_step             = S_FACE
         self._session_active       = False
+        self._on_enrollment_closed_cb = on_enrollment_closed
 
         self.title("Smart Attendance System")
         self.configure(bg=BG)
@@ -444,7 +445,9 @@ class AttendanceUI(tk.Tk):
                      f"+{(sx-WIN_WIDTH)//2}+{(sy-WIN_HEIGHT)//2}")
         EnrollmentApp(win)
         win.protocol("WM_DELETE_WINDOW",
-            lambda: (win.destroy(), self.after(600, self._reload_students)))
+            lambda: (win.destroy(), self.after(600, self._on_enrollment_closed_cb)
+            if self._on_enrollment_closed_cb else None
+        ))
 
     def _reload_students(self):
         from attend_detectors import load_students
