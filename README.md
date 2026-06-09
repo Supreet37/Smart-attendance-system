@@ -1,9 +1,13 @@
 # 🎓 Smart Attendance System — Installation & User Guide
 
-A secure AI-powered attendance system that combines **face recognition, liveness detection, gesture verification, voice confirmation, and location logging** to prevent proxy attendance and improve reliability.
-<img src='banner.png' />
+# 🎓 Smart Attendance System — Installation & User Guide
+
+A smart and secure attendance management system that leverages **Face Recognition, Liveness Detection, Gesture Verification, Voice Authentication, and GPS Logging** to ensure accurate attendance tracking and minimize proxy attendance. Designed with a multi-layer verification pipeline, the system provides a reliable, user-friendly, and scalable solution for educational institutions, training centers, and organizations.
+
 
 ---
+
+<img src='banner.png' />
 
 ## 🚀 Getting Started
 
@@ -188,3 +192,13 @@ This layered approach helps reduce spoofing attempts and proxy attendance while 
 * Use a working webcam and microphone for the best experience.
 * Attendance can still be recorded if optional modules (MediaPipe or microphone) are unavailable.
 * All captured data is stored locally on the system.
+
+---
+
+## 🤝 Contributions Welcome
+
+Contributions, issues, and feature requests are welcome!
+
+If you'd like to improve the project, fix bugs, enhance performance, or add new features, feel free to fork the repository and submit a Pull Request.
+
+If you find this project useful, consider giving it a ⭐ to support its development.
