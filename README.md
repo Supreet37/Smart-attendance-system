@@ -181,7 +181,7 @@ This layered approach helps reduce spoofing attempts and proxy attendance while 
 ---
 
 ## Demo
-<img src='demo1.png' /><br>
+<img src='demo1.png' />
 <img src='demo2.png' />
 
 ## 💡 Notes
