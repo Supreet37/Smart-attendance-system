@@ -1,7 +1,5 @@
 # 🎓 Smart Attendance System — Installation & User Guide
 
-# 🎓 Smart Attendance System — Installation & User Guide
-
 A smart and secure attendance management system that leverages **Face Recognition, Liveness Detection, Gesture Verification, Voice Authentication, and GPS Logging** to ensure accurate attendance tracking and minimize proxy attendance. Designed with a multi-layer verification pipeline, the system provides a reliable, user-friendly, and scalable solution for educational institutions, training centers, and organizations.
 
 
