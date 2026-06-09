@@ -1,67 +1,185 @@
-# Smart Attendance System — Setup & Troubleshooting
+# 🎓 Smart Attendance System — Installation & User Guide
 
-## Quick Start
-```
+A secure AI-powered attendance system that combines **face recognition, liveness detection, gesture verification, voice confirmation, and location logging** to prevent proxy attendance and improve reliability.
+
+---
+
+## 🚀 Getting Started
+
+Install the required dependencies and launch the applications:
+
+```bash
 pip install -r requirements.txt
-python enrollment_app.py   # enroll students first
-python attendance_app.py   # then take attendance
+
+# Step 1: Enroll students
+python enrollment_app.py
+
+# Step 2: Start attendance verification
+python attendance_app.py
 ```
+
+> Students must be enrolled before attendance can be recorded.
 
 ---
 
-## Camera won't open?
-Edit `attend_config.py` and change:
+## 📷 Camera Troubleshooting
+
+If the webcam does not open, edit `attend_config.py` and try a different camera index:
+
 ```python
-CAMERA_INDEX = 0   # try 1, 2, 3 if 0 doesn't work
+CAMERA_INDEX = 0
 ```
-On **Linux** also run:  `sudo usermod -aG video $USER`  then log out & in.
+
+Possible values:
+
+```python
+CAMERA_INDEX = 1
+CAMERA_INDEX = 2
+CAMERA_INDEX = 3
+```
+
+### Linux Users
+
+Grant camera permissions:
+
+```bash
+sudo usermod -aG video $USER
+```
+
+Log out and log back in after running the command.
 
 ---
 
-## MediaPipe (hand / face mesh) not working?
-The system works perfectly **without** MediaPipe using OpenCV fallbacks.
-If you want MediaPipe and have version ≥ 0.10:
+## 🤚 MediaPipe Hand & Face Detection
 
-1. Download the two model files into the same folder as `attend_detectors.py`:
-   - https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
-   - https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+The system includes OpenCV-based fallback detectors and will continue working even if MediaPipe is unavailable.
 
----
+To enable MediaPipe support (v0.10+), download these model files and place them in the same directory as `attend_detectors.py`:
 
-## Audio / voice not working?
-- **Windows**: usually works out of the box.
-- **Linux**: `sudo apt install portaudio19-dev libsndfile1` then `pip install sounddevice`.
-- **macOS**: `brew install portaudio` then `pip install sounddevice`.
-- Voice step is **automatically skipped** if audio is unavailable — attendance is still marked.
+### Hand Landmarker
+
+https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+
+### Face Landmarker
+
+https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
 
 ---
 
-## GPS Location
-- Uses free IP geolocation (ip-api.com) — no API key needed.
-- Runs in background; doesn't block the camera.
-- Recorded in the CSV: Lat, Lon, City/Region/Country columns.
-- Disable by setting `GPS_ENABLED = False` in `attend_config.py`.
+## 🎤 Voice Verification Issues
+
+Voice verification adds an extra layer of identity confirmation.
+
+### Windows
+
+Works out of the box in most cases.
+
+### Linux
+
+```bash
+sudo apt install portaudio19-dev libsndfile1
+pip install sounddevice
+```
+
+### macOS
+
+```bash
+brew install portaudio
+pip install sounddevice
+```
+
+> If no microphone is detected, the voice verification step is automatically skipped and attendance can still be recorded successfully.
 
 ---
 
-## CSV Output
-`attendance/attendance_YYYY-MM-DD.csv`
+## 📍 GPS & Location Logging
 
-Columns: Roll, Name, Date, Time, Lat, Lon, Location, Photo, VoiceSkipped
+The system can automatically capture approximate attendance location using free IP-based geolocation.
 
-Photos saved to: `attendance/YYYY-MM-DD/<roll>_HHMMSS.jpg`
+### Features
+
+* No API key required
+* Uses `ip-api.com`
+* Runs in the background without blocking the camera
+* Stores location information alongside attendance records
+
+Recorded fields include:
+
+* Latitude
+* Longitude
+* City
+* Region
+* Country
+
+Disable location tracking in `attend_config.py`:
+
+```python
+GPS_ENABLED = False
+```
 
 ---
 
-## Files Overview
-| File | Purpose |
-|---|---|
-| `attendance_app.py` | **Main entry point** — run this |
-| `attend_config.py` | All settings (camera index, thresholds, etc.) |
-| `attend_detectors.py` | Face / hand / liveness / voice / GPS detection |
-| `attend_pipeline.py` | 4-step verification state machine |
-| `attend_ui.py` | Tkinter UI |
-| `enrollment_app.py` | Student enrollment window |
-| `enroll_camera.py` | Camera logic for enrollment |
-| `enroll_voice.py` | Voice recording for enrollment |
-| `enroll_config.py` | Enrollment settings |
+## 📊 Attendance Records
+
+Attendance logs are automatically generated in CSV format:
+
+```text
+attendance/attendance_YYYY-MM-DD.csv
+```
+
+### Recorded Information
+
+* Roll Number
+* Student Name
+* Date
+* Time
+* Latitude
+* Longitude
+* Location
+* Captured Photo Path
+* Voice Verification Status
+
+Captured images are stored in:
+
+```text
+attendance/YYYY-MM-DD/<roll>_HHMMSS.jpg
+```
+
+---
+
+## 📂 Project Structure
+
+| File                  | Description                                            |
+| --------------------- | ------------------------------------------------------ |
+| `attendance_app.py`   | Main attendance application entry point                |
+| `attend_config.py`    | System configuration and thresholds                    |
+| `attend_detectors.py` | Face, hand, liveness, voice, and GPS detection modules |
+| `attend_pipeline.py`  | Multi-step attendance verification workflow            |
+| `attend_ui.py`        | Tkinter-based user interface                           |
+| `enrollment_app.py`   | Student enrollment application                         |
+| `enroll_camera.py`    | Enrollment image capture functionality                 |
+| `enroll_voice.py`     | Enrollment voice recording module                      |
+| `enroll_config.py`    | Enrollment configuration settings                      |
+
+---
+
+## 🔒 Verification Pipeline
+
+The attendance workflow uses multiple verification stages to improve authenticity:
+
+1. Face Recognition
+2. Liveness Detection
+3. Gesture Verification
+4. Voice Confirmation (optional)
+5. Location Logging
+
+This layered approach helps reduce spoofing attempts and proxy attendance while maintaining a smooth user experience.
+
+---
+
+## 💡 Notes
+
+* Ensure adequate lighting for reliable face detection.
+* Use a working webcam and microphone for the best experience.
+* Attendance can still be recorded if optional modules (MediaPipe or microphone) are unavailable.
+* All captured data is stored locally on the system.
