@@ -1,6 +1,7 @@
 # 🎓 Smart Attendance System — Installation & User Guide
 
 A secure AI-powered attendance system that combines **face recognition, liveness detection, gesture verification, voice confirmation, and location logging** to prevent proxy attendance and improve reliability.
+<img src='banner.png' />
 
 ---
 
@@ -176,6 +177,10 @@ The attendance workflow uses multiple verification stages to improve authenticit
 This layered approach helps reduce spoofing attempts and proxy attendance while maintaining a smooth user experience.
 
 ---
+
+## Demo
+<img src='demo1.png' /><br>
+<img src='demo2.png' />
 
 ## 💡 Notes
 
