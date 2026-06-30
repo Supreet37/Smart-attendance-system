@@ -181,10 +181,8 @@ This layered approach helps reduce spoofing attempts and proxy attendance while 
 ---
 
 ## Demo
-<<p align="center">
-  <img src="demo1.png" width="45%" />
-  <img src="demo2.png" width="45%" />
-</p>
+<img src='demo1.png' />
+<img src='demo2.png' />
 
 ## 💡 Notes
 
