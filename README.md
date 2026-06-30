@@ -195,8 +195,6 @@ This layered approach helps reduce spoofing attempts and proxy attendance while 
 
 ## 🤝 Contributions Welcome
 
-Contributions, issues, and feature requests are welcome!
-
 If you'd like to improve the project, fix bugs, enhance performance, or add new features, feel free to fork the repository and submit a Pull Request.
 
 If you find this project useful, consider giving it a ⭐ to support its development.
